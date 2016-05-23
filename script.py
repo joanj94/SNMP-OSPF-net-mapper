@@ -5,17 +5,25 @@ import netsnmp
 import util
 
 class router:
-	def __init__(self, name = None, interfaces = None):
+	def __init__(self, name = None, interfaces = None, route_table = None):
 		self.name = name
 		self.interfaces = interfaces
+		self.route_table = route_table
 	#end of init
 
 
 	def __str__(self):
-		s =  "Router "+self.name+" Info:\n    Interfaces: \n" 
+		s =  "Router "+self.name+" Info:\n"
+		s = s+"+++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+		s = s+"    Interfaces: \n" 
 		for x in self.interfaces:
 			s = s+x.__str__()
+		s = s+"    Route Table: \n"
+		for x in self.route_table:
+			s = s+x.__str__()
+		s = s+"+++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
 		return s
+	#end of print
 #end of router class
 
 
@@ -27,10 +35,71 @@ class interface:
 		self.desc = desc
 	#end of init
 
+
 	def __str__(self):
 		return "        --------------------------------\n        Interface - "+self.desc+":\n        IP = "+self.ip+"\n        Mask = "+self.mask+"\n        Speed = "+self.speed+" b/s\n        --------------------------------\n"
 	#end of print
 #end of interface class
+
+
+class route:
+	def __init__(self, network=None, mask=None, next_hop=None, type = None, proto = None):
+		self.network = network
+		self.mask = mask
+		self.next_hop = next_hop
+		self.type = type
+		self.proto = proto
+	#end of init
+
+
+	def print_type(self):
+		if self.type == '4':
+			return "Indirect"
+		elif self.type == '3':
+			return "Direct"
+		elif self.type == '2':
+			return "Local"
+		elif self.type == '1':
+			return "Other"
+	#end of getting the type of the route
+
+
+	def print_proto(self):
+		if self.proto == '1':
+			return "Other"
+		elif self.proto == '2':
+			return "Local"
+		elif self.proto == '3':
+			return "Netmgmt"
+		elif self.proto == '4':
+			return "ICMP"
+		elif self.proto == '5':
+			return "EGP"
+		elif self.proto == '6':
+			return "GGP"
+		elif self.proto == '7':
+			return "HELLO"
+		elif self.proto == '8':
+			return "RIP"
+		elif self.proto == '9':
+			return "IS-IS"
+		elif self.proto == '10':
+			return "ES-IS"
+		elif self.proto == '11':
+			return "ciscoIgrp"
+		elif self.proto == '12':
+			return "bbnSpfIgp"
+		elif self.proto == '13':
+			return "OSPF"
+		elif self.proto == '14':
+			return "BGP"	
+	#end of getting the protocol of the route	
+
+
+	def __str__(self):
+		return "        --------------------------------\n        Route - "+self.print_type()+" - "+self.print_proto()+":\n        Network = "+self.network+"\n        Mask = "+self.mask+"\n        Mext Hop = "+self.next_hop+"\n        --------------------------------\n"
+	#end of print
+#end of route class
 
 
 def get_interfaces(ip):
@@ -53,10 +122,27 @@ def get_interfaces(ip):
 #end of get interfaces
 
 
+
+def make_route_table(ip):
+	result = []
+
+	networks = netsnmp.snmpwalk(netsnmp.Varbind('ipRouteDest'), Version = 2, DestHost = ip, Community=c)#snmpwalk -v 2c -c c t ipRouteDest
+	masks = netsnmp.snmpwalk(netsnmp.Varbind('ipRouteMask'), Version = 2, DestHost = ip, Community=c)#snmpmask -v 2c -c c t ipRouteMask
+	next_hops = netsnmp.snmpwalk(netsnmp.Varbind('ipRouteNextHop'), Version = 2, DestHost = ip, Community=c)#snmpwalk -v 2c -c c t ipRouteNextHop
+	types = netsnmp.snmpwalk(netsnmp.Varbind('ipRouteType'), Version = 2, DestHost = ip, Community=c)#snmpwalk -v 2c -c c t ipRouteType
+	protos = netsnmp.snmpwalk(netsnmp.Varbind('ipRouteProto'), Version = 2, DestHost = ip, Community=c)#snmpwalk -v 2c -c c t ipRouteProto
+
+	for x in xrange(len(networks)):
+		result.append(route(network = networks[x], mask = masks[x], next_hop = next_hops[x], type = types[x], proto = protos[x]))
+
+	return result
+#end of make table from an ip
+
+
 def get_router_info(ip):
 	r_name = netsnmp.snmpwalk(netsnmp.Varbind('sysName'), Version = 2, DestHost = ip, Community=c)#snmpwalk -v 2c -c c t sysName
 	if r_name:
-		return router(name=r_name[0], interfaces=get_interfaces(ip))
+		return router(name=r_name[0], interfaces=get_interfaces(ip), route_table=make_route_table(ip))
 #end of get router info
 
 
@@ -67,6 +153,7 @@ def get_unique_ips(r):
  			temp.add(i)
 	#get all the first ips without repeats
 	return temp
+#end of get unique ips from router
 
 
 def get_all_routers_from_one(r):
