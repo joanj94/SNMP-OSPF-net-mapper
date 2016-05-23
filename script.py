@@ -16,3 +16,7 @@ if __name__ == '__main__':
 	if args.community:
 	    c = args.community
 	#end parse
+
+	var = netsnmp.Varbind('ipAddrTable')
+	res = netsnmp.snmpwalk(var, Version = 2, DestHost = t, Community=c)	
+	print res
