@@ -2,6 +2,7 @@
 
 import argparse
 import netsnmp
+import util
 
 class router:
 	def __init__(self, name = None, interfaces = None):
@@ -26,7 +27,7 @@ class interface:
 	#end of init
 
 	def __str__(self):
-		return "        --------------------------------\n        Interface - "+self.ip+":\n        Speed = "+self.speed+"\n        Mask = "+self.mask+"\n        --------------------------------\n"
+		return "        --------------------------------\n        Interface - "+self.ip+":\n        Speed = "+self.speed+" b/s\n        Mask = "+self.mask+"\n        --------------------------------\n"
 	#end of print
 #end of interface class
 
@@ -51,9 +52,50 @@ def get_interfaces(ip):
 
 
 def get_router_info(ip):
-	r_name = netsnmp.snmpwalk(netsnmp.Varbind('sysName'), Version = 2, DestHost = ip, Community=c)[0]#snmpwalk -v 2c -c c t sysName
-	return router(name=r_name, interfaces=get_interfaces(ip))
+	r_name = netsnmp.snmpwalk(netsnmp.Varbind('sysName'), Version = 2, DestHost = ip, Community=c)#snmpwalk -v 2c -c c t sysName
+	if r_name:
+		return router(name=r_name[0], interfaces=get_interfaces(ip))
 #end of get router info
+
+
+def get_unique_ips(r):
+	temp = set()
+	for x in r.interfaces:
+		for i in netsnmp.snmpwalk(netsnmp.Varbind('ospfLsdbLsid'), Version = 2, DestHost = x.ip, Community=c):
+ 			temp.add(i)
+	#get all the first ips without repeats
+	return temp
+
+
+def get_all_routers_from_one(r):
+	ips = util.Stack()
+	visited_r = set()
+	visited_ip = set()
+	result = [r]
+	visited_r.add(r.name) #add the start ip to prevent rediscover the same router
+
+	for x in get_unique_ips(r):
+		ips.push(x)
+	#add the ips
+
+	while not ips.isEmpty():
+		ip = ips.pop()
+		if ip not in visited_ip:
+			visited_ip.add(ip)
+			r_router = get_router_info(ip)
+			if r_router:				
+				if r_router.name not in visited_r:
+					result.append(r_router)
+					visited_r.add(r_router.name)
+					for x in get_unique_ips(r_router):
+						ips.push(x)
+					#add the new ips
+				#if it's a new router
+			#if router is founded
+		#make sure we don't repeat ips
+	#Search all ips	
+	return result
+#end of get all info of the routers
 
 
 if __name__ == '__main__':
@@ -71,6 +113,8 @@ if __name__ == '__main__':
 	#end parse
 
 	r = get_router_info(t)
-	print (r)
+	r2 = get_all_routers_from_one(r)
+	for x in r2:
+		print x
 #end of main
 	
