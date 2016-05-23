@@ -20,14 +20,15 @@ class router:
 
 
 class interface:
-	def __init__(self, speed=None, ip=None, mask = None):
+	def __init__(self, speed=None, ip=None, mask = None, desc = None):
 		self.speed = speed
 		self.ip = ip
 		self.mask = mask
+		self.desc = desc
 	#end of init
 
 	def __str__(self):
-		return "        --------------------------------\n        Interface - "+self.ip+":\n        Speed = "+self.speed+" b/s\n        Mask = "+self.mask+"\n        --------------------------------\n"
+		return "        --------------------------------\n        Interface - "+self.desc+":\n        IP = "+self.ip+"\n        Mask = "+self.mask+"\n        Speed = "+self.speed+" b/s\n        --------------------------------\n"
 	#end of print
 #end of interface class
 
@@ -36,16 +37,17 @@ def get_interfaces(ip):
 	res = netsnmp.snmpwalk(netsnmp.Varbind('ipAdEntAddr'), Version = 2, DestHost = ip, Community=c)#snmpwalk -v 2c -c c t ipAddEntAddr
 	interfaces = []
 	for i_ip in res:
-		ifNum = netsnmp.snmpget(netsnmp.Varbind('ipAdEntIfIndex.'+i_ip), Version = 2, DestHost = ip, Community=c)[0] #snmpget -v 2c -c c t ipAddEntIfIndex.ip
+		ifNum = netsnmp.snmpget(netsnmp.Varbind('ipAdEntIfIndex.'+i_ip), Version = 2, DestHost = ip, Community=c)[0] #snmpget -v 2c -c c t ipAddEntIfIndex.i_ip
 
 		operStatusResult = netsnmp.snmpget(netsnmp.Varbind('ifOperStatus.'+ifNum), Version = 2, DestHost = ip, Community=c) #snmpget -v 2c -c c t ifOperStatus.ifNum
 		typeResult = netsnmp.snmpget(netsnmp.Varbind('ifType.'+ifNum), Version = 2, DestHost = ip, Community=c) #snmpget -v 2c -c c t ifType.+ifNum	
 
 		if typeResult[0] == '6' and operStatusResult[0] == '1':
 			speed = netsnmp.snmpget(netsnmp.Varbind('ifSpeed.'+ifNum), Version = 2, DestHost = ip, Community=c) #snmpget -v 2c -c c t ifSpeed.ifNum
-			mask = netsnmp.snmpget(netsnmp.Varbind('ipAdEntNetMask.'+i_ip), Version = 2, DestHost = ip, Community=c) #snmpget -v 2c -c c t ipAddEntNetMask.ip
-			interfaces.append(interface(speed = speed[0], ip = i_ip, mask = mask[0]))
-		#no loopback and active one
+			mask = netsnmp.snmpget(netsnmp.Varbind('ipAdEntNetMask.'+i_ip), Version = 2, DestHost = ip, Community=c) #snmpget -v 2c -c c t ipAddEntNetMask.i_ip
+			desc = netsnmp.snmpget(netsnmp.Varbind('ifDescr.'+ifNum), Version = 2, DestHost = ip, Community=c) #snmpget -v 2c -c c t ifDescr.ifNum
+			interfaces.append(interface(speed = speed[0], ip = i_ip, mask = mask[0], desc=desc[0]))
+		#no loopback and active ones
 	#search for all active ethernet interfaces
 	return interfaces
 #end of get interfaces
