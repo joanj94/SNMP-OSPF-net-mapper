@@ -249,12 +249,12 @@ def get_next_hop(x):
 		next_hops.add(get_next_hops([[(next_hop,next_router),(x[1][0],x[1][1])]]))
 	#the next router is not the destination one, get the next hops
 
-	return traceroute(o_r=x[0][1], d_r=x[1][1], o_ip=x[0][0], d_ip=x[1][0], hops=next_hops)	
+	return traceroute(o_r=x[0][1], d_r=x[1][1], o_ip=x[0][0], d_ip=x[1][0], hops=next_hops)
 #end of getting the next hops
 
 
 def get_next_hops(l):
-	res = []	
+	res = []
 	for x in l:
 		res.append(get_next_hop(x))
 	#get all the hops
@@ -269,15 +269,23 @@ def print_next_hops(ips_list):
 
 
 def set_neighbours(r):
+	temp = {}
 	for x in get_unique_ips(r):
-		r.nbr[x] = ips_router[x]
+		temp[ips_router[x]] = x
+	return temp
 #end of setting the neighbours from one router
+
+
+def set_all_nbr():
+	for x in routers:
+		routers[x].nbr = set_neighbours(routers[x])
+#end of setting to all the roouters their neighbours
 
 
 def print_results():
 	for x in routers:
 		print routers[x]
-	
+
 	print_next_hops(mix_all_ips(routers))
 #print results
 
