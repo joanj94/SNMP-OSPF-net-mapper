@@ -6,6 +6,7 @@ import util
 import itertools
 from netaddr import *
 import random
+from graphviz import Digraph
 
 ips_router = {}
 
@@ -35,7 +36,7 @@ class router:
 
 class interface:
 	def __init__(self, speed=None, ip=None, mask = None, desc = None):
-		self.speed = speed
+		self.speed = speed +" b/s"
 		self.ip = ip
 		self.mask = mask
 		self.desc = desc
@@ -43,7 +44,7 @@ class interface:
 
 
 	def __str__(self):
-		return "        --------------------------------\n        Interface - "+self.desc+":\n        IP = "+self.ip+"\n        Mask = "+self.mask+"\n        Speed = "+self.speed+" b/s\n        --------------------------------\n"
+		return "        --------------------------------\n        Interface - "+self.desc+":\n        IP = "+self.ip+"\n        Mask = "+self.mask+"\n        Speed = "+self.speed+"\n        --------------------------------\n"
 	#end of print
 #end of interface class
 
@@ -282,12 +283,26 @@ def set_all_nbr():
 #end of setting to all the roouters their neighbours
 
 
-def print_results():
+def print_rrouters_info():
 	for x in routers:
 		print routers[x]
 
 	print_next_hops(mix_all_ips(routers))
-#print results
+#print routers information
+
+
+def generate_graph():
+	dot = Digraph(comment='Network graph')
+	for r in routers:
+		dot.node(r,r)
+	#add the nodes
+	for r in routers:
+		for nbr in routers[r].nbr:
+			label = "Peer IP: "+routers[r].nbr[nbr]+"\nSpeed: "+routers[nbr].interfaces[routers[r].nbr[nbr]].speed
+			dot.edge(r,nbr,label=label)
+	#set the edges between the routers
+	dot.render('r.gv')
+#end of generating a graph	
 
 
 if __name__ == '__main__':
