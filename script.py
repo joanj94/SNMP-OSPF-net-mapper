@@ -125,7 +125,7 @@ class traceroute:
 			if x != self.o_r and x != self.d_r:
 				s = s+x+"->"
 
-		return "Hop from: "+self.o_r+"/"+self.o_ip+"->"+s+self.d_r+"/"+self.d_ip+"\n"
+		return "Traceroute: "+self.o_r+"/"+self.o_ip+"->"+s+self.d_r+"/"+self.d_ip+"\n"
 
 #end of traceroute class
 
@@ -283,15 +283,19 @@ def set_all_nbr():
 #end of setting to all the roouters their neighbours
 
 
-def print_rrouters_info():
+def print_routers_info():
 	for x in routers:
 		print routers[x]
-
-	print_next_hops(mix_all_ips(routers))
 #print routers information
 
 
-def generate_graph():
+def print_all_hops():
+	for x in routers:
+		print_next_hops(mix_all_ips(routers))
+#end of printing all the hops between the ips
+
+
+def generate_graph(path):
 	dot = Digraph(comment='Network graph')
 	for r in routers:
 		dot.node(r,r)
@@ -301,23 +305,34 @@ def generate_graph():
 			label = "Peer IP: "+routers[r].nbr[nbr]+"\nSpeed: "+routers[nbr].interfaces[routers[r].nbr[nbr]].speed
 			dot.edge(r,nbr,label=label)
 	#set the edges between the routers
-	dot.render('r.gv')
-#end of generating a graph	
+	dot.render(path)
+#end of generating a graph
 
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(
 		formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-		description='OSPF net mapper based in SNMP')
+		description='OSPF network mapper based in SNMP')
 	parser.add_argument('-t', '--target', required=True, help='Target IP')
 	parser.add_argument('-c', '--community', required=True, help='Community name')
+	parser.add_argument('-pi', '--print_ip', action='store_true', help='Print all hops in the possible combinations between the routers')
+	parser.add_argument('-pg', '--print_graph', required=False, help='Print a graph with the name provided')
 
 	args = parser.parse_args()
 	if args.target:
 	    t = args.target
 	if args.community:
 	    c = args.community
-	#end parse
+	#end obligatory ArgumentParser
 
-	routers = get_all_routers_from_one(get_router_info(t))
+	routers = get_all_routers_from_one(get_router_info(t)) #get all the routers
+	print_routers_info()
+
+	if args.print_ip:
+		print_all_hops()
+	if args.print_graph:
+		set_all_nbr() #set all the neighbours
+		generate_graph(args.print_graph)
+	#end optional ArgumentParser
+
 #end of main
