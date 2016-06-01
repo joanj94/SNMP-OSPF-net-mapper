@@ -232,25 +232,37 @@ def get_interface_network(i):
 
 
 def get_next_hop(x):
-	next_hops = set()
+	next_hops = []	
+	org_ip = x[0][0]
+	org_r = x[0][1]
+	dest_ip = x[1][0]
+	dest_r = x[1][1]
+	
+	net = get_interface_network(routers[dest_r].interfaces[dest_ip]) #get the network
 
-	net = get_interface_network(routers[x[1][1]].interfaces[x[1][0]]) #get the network
-
-	if net.__str__() in routers[x[0][1]].route_table:
-		next_hop = routers[x[0][1]].route_table[net.__str__()].next_hop
+	if net.__str__() in routers[org_r].route_table:
+		next_hop = routers[org_r].route_table[net.__str__()].next_hop
 	#if the router have the route defined
 	else:
-		next_hop = routers[x[0][1]].route_table['0.0.0.0'].next_hop
+		next_hop = routers[org_r].route_table['0.0.0.0'].next_hop
 	#the router uses the default route
 
 	next_router = ips_router[next_hop]
-	next_hops.add(next_router)
+	next_hops.append(next_router)
 
-	if next_router != ips_router[next_hop]:
-		next_hops.add(get_next_hops([[(next_hop,next_router),(x[1][0],x[1][1])]]))
-	#the next router is not the destination one, get the next hops
+	while routers[next_router].route_table[net.__str__()].next_hop not in routers[next_router].interfaces:
+		if net.__str__() in routers[next_router].route_table:
+			next_hop = routers[next_router].route_table[net.__str__()].next_hop
+		#if the router have the route defined
+		else:
+			next_hop = routers[next_router].route_table['0.0.0.0'].next_hop
+		#the router uses the default route
 
-	return traceroute(o_r=x[0][1], d_r=x[1][1], o_ip=x[0][0], d_ip=x[1][0], hops=next_hops)
+		next_router = ips_router[next_hop]
+		next_hops.append(next_router)
+		#the next router is not the destination one, get the next hops
+	#while we didn't reach the destination
+	return traceroute(o_r=org_r, d_r=dest_r, o_ip=org_ip, d_ip=dest_ip, hops=next_hops)
 #end of getting the next hops
 
 
